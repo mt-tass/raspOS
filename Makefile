@@ -1,33 +1,43 @@
+# Makefile for Raspberry Pi 3B OS
+
 CC = aarch64-linux-gnu-gcc
 LD = aarch64-linux-gnu-ld
 OBJCOPY = aarch64-linux-gnu-objcopy
 
-
-CFLAGS = -Wall -O2 -ffreestanding -nostdlib
+CFLAGS = -Wall -O2 -ffreestanding -nostdlib 
 LDFLAGS = -T linker.ld
 
-OBJS = boot.o kernel.o uart.o
+# Add gpio.o to object files list
+OBJS = boot.o kernel.o uart.o gpio.o timer.o
 
 all: kernel8.img
 
 boot.o: boot.S
 	$(CC) $(CFLAGS) -c boot.S -o boot.o
 
-kernel.o: kernel.c uart.h
+kernel.o: kernel.c uart.h gpio.h timer.h
 	$(CC) $(CFLAGS) -c kernel.c -o kernel.o
 
 uart.o: uart.c uart.h
 	$(CC) $(CFLAGS) -c uart.c -o uart.o
+
+# Add gpio compilation rule
+gpio.o: gpio.c gpio.h
+	$(CC) $(CFLAGS) -c gpio.c -o gpio.o
+
+timer.o : timer.c timer.h
+	$(CC) $(CFLAGS) -c timer.c -o timer.o
 
 kernel.elf: $(OBJS) linker.ld
 	$(LD) $(LDFLAGS) $(OBJS) -o kernel.elf
 
 kernel8.img: kernel.elf
 	$(OBJCOPY) -O binary kernel.elf kernel8.img
-	@echo "Build done"
+	@echo "Build complete!"
 	@ls -lh kernel8.img
 
 run: kernel8.img
+	@echo "Starting QEMU (Raspberry Pi 3B)..."
 	qemu-system-aarch64 \
 		-M raspi3b \
 		-kernel kernel8.img \
