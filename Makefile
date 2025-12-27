@@ -5,14 +5,14 @@ OBJCOPY = aarch64-linux-gnu-objcopy
 CFLAGS = -Wall -O2 -ffreestanding -nostdlib 
 LDFLAGS = -T linker.ld
 
-OBJS = boot.o kernel.o uart.o gpio.o timer.o i2c.o spi.o mailbox.o
+OBJS = boot.o kernel.o uart.o gpio.o timer.o i2c.o spi.o mailbox.o framebuffer.o
 
 all: kernel8.img
 
 boot.o: boot.S
 	$(CC) $(CFLAGS) -c boot.S -o boot.o
 
-kernel.o: kernel.c uart.h gpio.h timer.h i2c.h spi.h mailbox.h
+kernel.o: kernel.c uart.h gpio.h timer.h i2c.h spi.h mailbox.h framebuffer.h
 	$(CC) $(CFLAGS) -c kernel.c -o kernel.o
 
 uart.o: uart.c uart.h
@@ -32,6 +32,8 @@ spi.o : spi.c spi.h
 
 mailbox.o : mailbox.c mailbox.h
 	$(CC) $(CFLAGS) -c mailbox.c -o mailbox.o
+framebuffer.o : framebuffer.c framebuffer.h
+	$(CC) $(CFLAGS) -c framebuffer.c -o framebuffer.o
 
 kernel.elf: $(OBJS) linker.ld
 	$(LD) $(LDFLAGS) $(OBJS) -o kernel.elf
@@ -48,7 +50,7 @@ run: kernel8.img
 		-kernel kernel8.img \
 		-serial null \
 		-serial stdio \
-		-display none
+		-display default
 
 clean:
 	rm -f *.o kernel.elf kernel8.img
