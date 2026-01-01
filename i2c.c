@@ -24,7 +24,7 @@ static inline void bsc_clear_status(void){
     REG(I2C_STAT) = BSC_S_CLKT | BSC_S_ERR | BSC_S_DONE;
 }
 static inline void bsc_clear_fifo(void){
-    REG(I2C_CTRL) = BSC_C_CLEAR;
+    REG(I2C_CTRL) = BSC_C_CLEAR | BSC_C_I2CEN;
 }
 void i2c_init(void){
     gpio_set_function(2, AF0);
@@ -42,30 +42,33 @@ int i2c_write(uint8_t addr, uint8_t *data, uint32_t size){
     bsc_clear_status();
     REG(I2C_ADDR) = addr &(0x7F);
     REG(I2C_DL)= size;
-    REG(I2C_CTRL) = BSC_C_I2CEN;
-    for (uint32_t i = 0; i < size; i++) {
-        uint64_t t0 = timer_get_ticks();
-        while (!(REG(I2C_STAT) & BSC_S_TXD)) {
-            if (timer_get_ticks() - t0 > 100000)
-                return -5;
+    REG(I2C_CTRL) = BSC_C_I2CEN|BSC_C_ST;
+    uint32_t i = 0;
+    uint64_t start = timer_get_ticks();
+    while(i < size){
+        if (REG(I2C_STAT) & BSC_S_TXD){
+            REG(I2C_FIFO) = data[i++];
         }
-        REG(I2C_FIFO) = data[i];
-    }
-    REG(I2C_CTRL) = BSC_C_I2CEN | BSC_C_ST;
-    uint64_t time = timer_get_ticks();
-    while (1) {
-        uint32_t stat = REG(I2C_STAT);
-        if (stat& BSC_S_ERR){
+        if(REG(I2C_STAT) & BSC_S_ERR){
             return -2;
         }
-        if (stat& BSC_S_CLKT){
+        if(REG(I2C_STAT) & BSC_S_CLKT){
             return -3;
         }
-        if (stat& BSC_S_DONE){
-            break;
-        }
-        if (timer_get_ticks() - time > 100000){
+        if(timer_get_ticks() - start > 100000){
             return -4;
+        }
+    }
+    start = timer_get_ticks();
+    while(!(REG(I2C_STAT) & BSC_S_DONE)){
+        if(REG(I2C_STAT) & BSC_S_ERR){
+            return -2;
+        }
+        if(REG(I2C_STAT) & BSC_S_CLKT){
+            return -3;
+        }
+        if(timer_get_ticks() - start > 100000){
+            return -5;
         }
     }
     return 0;
