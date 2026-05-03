@@ -2,38 +2,17 @@ CC = aarch64-linux-gnu-gcc
 LD = aarch64-linux-gnu-ld
 OBJCOPY = aarch64-linux-gnu-objcopy
 
-CFLAGS = -Wall -O2 -ffreestanding -nostdlib 
+CFLAGS = -Wall -O2 -ffreestanding -nostdlib -Iinclude
 LDFLAGS = -T linker.ld
 
 OBJS = boot.o kernel.o uart.o gpio.o timer.o i2c.o spi.o mailbox.o framebuffer.o
 
 all: kernel8.img
 
-boot.o: boot.S
-	$(CC) $(CFLAGS) -c boot.S -o boot.o
-
-kernel.o: kernel.c uart.h gpio.h timer.h i2c.h spi.h mailbox.h framebuffer.h
-	$(CC) $(CFLAGS) -c kernel.c -o kernel.o
-
-uart.o: uart.c uart.h
-	$(CC) $(CFLAGS) -c uart.c -o uart.o
-
-gpio.o: gpio.c gpio.h
-	$(CC) $(CFLAGS) -c gpio.c -o gpio.o
-
-timer.o : timer.c timer.h
-	$(CC) $(CFLAGS) -c timer.c -o timer.o
-
-i2c.o : i2c.c i2c.h
-	$(CC) $(CFLAGS) -c i2c.c -o i2c.o
-
-spi.o : spi.c spi.h
-	$(CC) $(CFLAGS) -c spi.c -o spi.o
-
-mailbox.o : mailbox.c mailbox.h
-	$(CC) $(CFLAGS) -c mailbox.c -o mailbox.o
-framebuffer.o : framebuffer.c framebuffer.h
-	$(CC) $(CFLAGS) -c framebuffer.c -o framebuffer.o
+%.o : src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+%.o : %.S
+	$(CC) $(CFLAGS) -c $< -o $@
 
 kernel.elf: $(OBJS) linker.ld
 	$(LD) $(LDFLAGS) $(OBJS) -o kernel.elf
